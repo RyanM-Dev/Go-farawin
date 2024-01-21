@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -30,38 +30,39 @@ func auth(c *gin.Context) {
 	c.Next()
 }
 func msg(c *gin.Context) {
-	urlParam := c.PostForm("msg")
-	fmt.Printf("msg is:%s", urlParam)
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.String(http.StatusBadRequest, "Bad request")
+	} else if string(body) != "" {
+		c.JSONP(http.StatusOK, gin.H{
+			"body": string(body),
+		})
 
-	if urlParam != "" {
-		c.String(http.StatusOK, "Your Message is: %s", urlParam)
 	} else {
-		c.String(http.StatusGone, "no message received ")
-	}
-	var jsonBody map[string]interface{}
-	err := c.ShouldBindJSON(&jsonBody)
-	if jsonBody != nil {
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
+
+		urlParam := c.Query("msg")
+
+		if urlParam != "" {
+			c.String(http.StatusOK, "Your Message is: %s", urlParam)
+		} else {
+			c.String(http.StatusGone, "no message received ")
+		}
+		var jsonBody map[string]interface{}
+		err = c.ShouldBindJSON(&jsonBody)
+		if jsonBody != nil {
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, jsonBody)
 		}
 
-		c.JSON(http.StatusOK, jsonBody)
 	}
-
 }
 
-//	func printJSON(c *gin.Context) {
-//		var jsonBody map[string]interface{}
-//		if err:=c.ShouldBindJSON(&jsonBody); err!=nil {
-//			c.JSON(http.StatusBadRequest,gin.H{
-//				"error":err.Error(),
-//			})
-//		}
-//		c.JSON(http.StatusOK,jsonBody)
-//	}
 func main() {
 	router := gin.Default()
 	router.Use(auth)
