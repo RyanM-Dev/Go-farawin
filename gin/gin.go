@@ -34,7 +34,7 @@ func msg(c *gin.Context) {
 	if err != nil {
 		c.String(http.StatusBadRequest, "Bad request")
 	} else if string(body) != "" {
-		c.JSONP(http.StatusOK, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"body": string(body),
 		})
 
