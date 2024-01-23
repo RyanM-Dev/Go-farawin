@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -29,10 +31,11 @@ func auth(c *gin.Context) {
 	}
 	c.Next()
 }
-func msg(c *gin.Context) {
+func printMessageHandler(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Bad request")
+		return
 	} else if string(body) != "" {
 		c.JSON(http.StatusOK, gin.H{
 			"body": string(body),
@@ -63,16 +66,20 @@ func msg(c *gin.Context) {
 	}
 }
 
+var port = flag.Int("port", 8080, "Port to run the HTTP server")
+
 func main() {
+	flag.Parse()
+	addr := fmt.Sprintf(":%d", *port)
 	router := gin.Default()
 	router.Use(auth)
 	router.GET("/hello", Hello)
 	router.GET("/", apisPrint)
-	router.POST("/print", msg)
+	router.POST("/print", printMessageHandler)
 
 	router.DELETE("/stop", func(c *gin.Context) {
 		os.Exit(0)
 	})
-	router.Run(":8080")
+	router.Run(addr)
 
 }
