@@ -35,6 +35,8 @@ func printMessageHandler(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Bad request")
+
+		fmt.Printf("error : %s", err)
 		return
 	} else if string(body) != "" {
 		c.JSON(http.StatusOK, gin.H{
