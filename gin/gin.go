@@ -1,14 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 )
+
+//You can specify the port on the command line
+
+var port = flag.Int("port", 8080, "Port to run the HTTP server")
+
+//Greeting Method
 
 func Hello(c *gin.Context) {
 	c.String(200, "Hello Ryan and Mr.Ghofrani")
@@ -19,19 +27,27 @@ func apisPrint(c *gin.Context) {
 			"GET   /hello",
 			"POST   /print",
 			"DELETE  /stop",
-			"POST  /print",
 		},
 	})
 }
+
+//Auth Method
+
 func auth(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader != "test" {
 		c.AbortWithStatus(http.StatusForbidden)
+		c.String(http.StatusForbidden, "Authentication Required")
+		log.Print(http.StatusForbidden, "  Authentication Required")
 		return
 	}
 	c.Next()
 }
+
+//Query and Body print Method,Body has priority
+
 func printMessageHandler(c *gin.Context) {
+
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Bad request")
@@ -39,9 +55,16 @@ func printMessageHandler(c *gin.Context) {
 		fmt.Printf("error : %s", err)
 		return
 	} else if string(body) != "" {
-		c.JSON(http.StatusOK, gin.H{
-			"body": string(body),
-		})
+		var jsonData interface{}
+		err = json.Unmarshal(body, &jsonData)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Error parsing JSON",
+			})
+			return
+		} else if err == nil {
+			c.JSON(http.StatusOK, jsonData)
+		}
 
 	} else {
 
@@ -52,25 +75,12 @@ func printMessageHandler(c *gin.Context) {
 		} else {
 			c.String(http.StatusGone, "no message received ")
 		}
-		var jsonBody map[string]interface{}
-		err = c.ShouldBindJSON(&jsonBody)
-		if jsonBody != nil {
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			c.JSON(http.StatusOK, jsonBody)
-		}
 
 	}
 }
 
-var port = flag.Int("port", 8080, "Port to run the HTTP server")
-
 func main() {
+
 	flag.Parse()
 	addr := fmt.Sprintf(":%d", *port)
 	router := gin.Default()
